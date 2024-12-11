@@ -1,0 +1,64 @@
+version: "3"
+name: "sensorbot-esp32"
+
+services:
+  emqx:
+    image: emqx/emqx:5.8.1
+    container_name: emqx-esp
+    environment:
+    - "EMQX_NODE_NAME=emqx@node1.emqx.com"
+    - "EMQX_CLUSTER__DISCOVERY_STRATEGY=static"
+    - "EMQX_CLUSTER__STATIC__SEEDS=[emqx@node1.emqx.com]"
+    healthcheck:
+      test: ["CMD", "/opt/emqx/bin/emqx", "ctl", "status"]
+      interval: 5s
+      timeout: 25s
+      retries: 5
+    ports:
+      - 1883:1883
+      - 8083:8083
+      - 8084:8084
+      - 8883:8883
+      - 18083:18083
+  telegraf:
+    image: telegraf:1.32.2
+    container_name: telegraf-esp
+    restart: on-failure
+    depends_on:
+      - influxdb
+    volumes:
+      - ./telegraf.conf:/etc/telegraf/telegraf.conf:ro
+  influxdb:
+    image: influxdb:2.7.10
+    container_name: influxdb-esp
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=admin12345
+      - DOCKER_INFLUXDB_INIT_ORG=admin
+      - DOCKER_INFLUXDB_INIT_BUCKET=my-bucket
+    ports:
+      - 8086:8086
+    volumes:
+      - ./influxdb/data:/var/lib/influxdb2
+      - ./influxdb/config:/etc/influxdb2
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    container_name: grafana-esp
+    volumes:
+      - ./grafana.ini:/etc/grafana/grafana.ini
+      - ./grafana/config/dashboards:/var/lib/grafana/dashboards
+      - ./grafana/config/datasources:/etc/grafana/datasources
+      - ./grafana/config/plugins:/var/lib/grafana/plugins
+      - ./grafana/data:/var/lib/grafana
+    ports:
+     - '3000:3000'
+  sensorbot:
+    image: ayasy/sensor-bot
+    container_name: sensorbot
+    restart: on-failure
+    depends_on:
+      - influxdb
+    volumes:
+      - ./pybot/.env:/app/.env

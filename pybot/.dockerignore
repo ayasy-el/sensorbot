@@ -1,0 +1,21 @@
+# Ignore virtual environment
+venv/
+
+# Ignore environment files
+.env
+.env.example
+
+# Ignore git and cache directories
+.git
+.gitignore
+__pycache__
+
+# Ignore log files
+*.log
+
+# Ignore development and IDE files
+.vscode/
+.idea/
+*.pyc
+*.pyo
+*.pyd
